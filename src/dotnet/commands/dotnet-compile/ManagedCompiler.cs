@@ -9,7 +9,6 @@ using Microsoft.DotNet.Cli.Compiler.Common;
 using Microsoft.DotNet.Cli.Utils;
 using Microsoft.DotNet.ProjectModel;
 using Microsoft.DotNet.ProjectModel.Compilation;
-using Microsoft.DotNet.ProjectModel.Utilities;
 using Microsoft.Extensions.DependencyModel;
 
 namespace Microsoft.DotNet.Tools.Compiler
@@ -160,6 +159,10 @@ namespace Microsoft.DotNet.Tools.Compiler
                 contextVariables.Add(
                     "compile:RuntimeOutputDir",
                     runtimeOutputPath.RuntimeOutputPath.TrimEnd('\\', '/'));
+
+                contextVariables.Add(
+                    "compile:RuntimeIdentifier",
+                    runtimeContext.RuntimeIdentifier);
             }
 
             _scriptRunner.RunScripts(context, ScriptNames.PreCompile, contextVariables);
