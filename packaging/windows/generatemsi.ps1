@@ -6,6 +6,7 @@ param(
 )
 
 . "$PSScriptRoot\..\..\scripts\common\_common.ps1"
+$RepoRoot = Convert-Path "$PSScriptRoot\..\.."
 
 $DotnetMSIOutput = ""
 $DotnetBundleOutput = ""
@@ -28,11 +29,13 @@ function AcquireWixTools
     Invoke-WebRequest -Uri https://wix.codeplex.com/downloads/get/1540241 -Method Get -OutFile $result\WixTools.zip
 
     Write-Host Extracting Wixtools..
+    Write-Host [System.IO.Compression.ZipFile]::ExtractToDirectory("$result\WixTools.zip", $result)
+    Add-Type -Assembly System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory("$result\WixTools.zip", $result)
 
-    if($LastExitCode -ne 0)
+    if($? -eq $False)
     {
-        throw "Unable to download and extract the WixTools."
+        throw "Unable to extract the WixTools."
     }
 
     return $result
@@ -245,8 +248,5 @@ Write-Host -ForegroundColor Green "Successfully created dotnet MSI - $DotnetMSIO
 Write-Host -ForegroundColor Green "Successfully created dotnet bundle - $DotnetBundleOutput"
 
 _ $RepoRoot\test\Installer\testmsi.ps1 @("$DotnetMSIOutput")
-
-$PublishScript = Join-Path $PSScriptRoot "..\..\scripts\publish\publish.ps1"
-& $PublishScript -file $DotnetBundleOutput
 
 exit $LastExitCode

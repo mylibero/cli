@@ -31,7 +31,7 @@ namespace Microsoft.DotNet.Cli.Build
         public static BuildTargetResult CheckInstallerBuildPlatformDependencies(BuildTargetContext c) => c.Success();
 
         // All major targets will depend on this in order to ensure variables are set up right if they are run independently
-        [Target(nameof(GenerateVersions), nameof(CheckPrereqs), nameof(LocateStage0))]
+        [Target(nameof(GenerateVersions), nameof(CheckPrereqs), nameof(LocateStage0), nameof(ExpectedBuildArtifacts))]
         public static BuildTargetResult Init(BuildTargetContext c)
         {
             var runtimeInfo = PlatformServices.Default.Runtime;
@@ -102,6 +102,56 @@ namespace Microsoft.DotNet.Cli.Build
             c.Info($"Using Stage 0 Version: {version[1]}");
 
             return c.Success();
+        }
+
+        [Target]
+        public static BuildTargetResult ExpectedBuildArtifacts(BuildTargetContext c)
+        {
+            var productName = GetProductMoniker(c);
+            c.BuildContext["VersionBadge"] = Path.Combine(Dirs.Output, "version_badge.svg");
+
+            var extension = CurrentPlatform.IsWindows ? ".zip" : ".tar.gz";
+            c.BuildContext["CompressedFile"] = Path.Combine(Dirs.Packages, productName + extension);
+
+            string installer = "";
+            switch(CurrentPlatform.Current)
+            {
+                case BuildPlatform.Windows:
+                    installer = productName + ".exe";
+                    break;
+                case BuildPlatform.OSX:
+                    installer = productName + ".pkg";
+                    break;
+                case BuildPlatform.Ubuntu:
+                    installer = productName + ".deb";
+                    break;
+                default:
+                    break;
+            }
+
+            if(!string.IsNullOrEmpty(installer))
+            {
+                c.BuildContext["InstallerFile"] = Path.Combine(Dirs.Packages, installer);
+            }            
+
+            return c.Success();
+        }
+
+        private static string GetProductMoniker(BuildTargetContext c)
+        {
+            string osname = "";
+            switch (CurrentPlatform.Current)
+            {
+                case BuildPlatform.Windows:
+                    osname = "win";
+                    break;
+                default:
+                    osname = CurrentPlatform.Current.ToString().ToLower();
+                    break;
+            }
+            var arch = CurrentArchitecture.Current.ToString();
+            var version = c.BuildContext.Get<BuildVersion>("BuildVersion").SimpleVersion;
+            return $"dotnet-{osname}-{arch}.{version}";
         }
 
         [Target]

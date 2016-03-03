@@ -11,21 +11,23 @@ namespace Microsoft.DotNet.Cli.Build
 {
     public static class PublishTargets
     {
-        [Target(nameof(PrepareTargets.Init))]
+        [Target]
+        public static BuildTargetResult InitPublish(BuildTargetContext c)
+        {
+            return c.Success();
+        }
+
+        [Target(nameof(PrepareTargets.Init),
+        nameof(PublishTargets.InitPublish),
+        nameof(PublishTargets.PublishArtifacts))]
         public static BuildTargetResult Publish(BuildTargetContext c)
         {
-            if (string.Equals(Environment.GetEnvironmentVariable("DOTNET_BUILD_SKIP_PACKAGING"), "1", StringComparison.Ordinal))
-            {
-                c.Info("Skipping packaging because DOTNET_BUILD_SKIP_PACKAGING is set");
-                return c.Success();
-            }
-
             // NOTE(anurse): Currently, this just invokes the remaining build scripts as-is. We should port those to C# as well, but
             // I want to get the merged in.
 
             // Set up the environment variables previously defined by common.sh/ps1
             // This is overkill, but I want to cover all the variables used in all OSes (including where some have the same names)
-            var buildVersion = c.BuildContext.Get<BuildVersion>("BuildVersion");
+            /*var buildVersion = c.BuildContext.Get<BuildVersion>("BuildVersion");
             var configuration = c.BuildContext.Get<string>("Configuration");
             var architecture = PlatformServices.Default.Runtime.RuntimeArchitecture;
             var env = new Dictionary<string, string>()
@@ -74,7 +76,55 @@ namespace Microsoft.DotNet.Cli.Build
                     .Environment(env)
                     .Execute()
                     .EnsureSuccessful();
-            }
+            }*/
+            return c.Success();
+        }
+
+        [Target(nameof(PublishTargets.PublishVersionBadge),
+        nameof(PublishTargets.PublishCompressedFile),
+        nameof(PublishTargets.PublishInstallerFile))]
+        public static BuildTargetResult PublishArtifacts(BuildTargetContext c)
+        {
+            //version badge
+
+
+
+            //zip file
+
+            //Bundle
+            return c.Success();
+        }
+
+        [Target]
+        public static BuildTargetResult PublishVersionBadge(BuildTargetContext c)
+        {
+            var versionBadge = c.BuildContext.Get<string>("VersionBadge");
+            return PublishFile(c, versionBadge);
+        }
+
+        [Target]
+        public static BuildTargetResult PublishCompressedFile(BuildTargetContext c)
+        {
+            var compressedFile = c.BuildContext.Get<string>("CompressedFile");
+            return PublishFile(c, compressedFile);
+        }
+
+        [Target]
+        [BuildPlatforms(BuildPlatform.Windows, BuildPlatform.OSX, BuildPlatform.Ubuntu)]
+        public static BuildTargetResult PublishInstallerFile(BuildTargetContext c)
+        {
+            var installerFile = c.BuildContext.Get<string>("InstallerFile");
+            return PublishFile(c, installerFile);
+        }
+
+        private static BuildTargetResult PublishFile(BuildTargetContext c, string file)
+        {
+            var env = PackageTargets.GetCommonEnvVars(c);
+            Cmd("powershell", "-NoProfile", "-NoLogo",
+                Path.Combine(Dirs.RepoRoot, "scripts", "publish", "publish.ps1"), file)
+                    .Environment(env)
+                    .Execute()
+                    .EnsureSuccessful();
             return c.Success();
         }
     }
