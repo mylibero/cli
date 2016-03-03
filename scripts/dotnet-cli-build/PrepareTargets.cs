@@ -107,8 +107,10 @@ namespace Microsoft.DotNet.Cli.Build
         [Target]
         public static BuildTargetResult ExpectedBuildArtifacts(BuildTargetContext c)
         {
-            var productName = GetProductMoniker(c);
-            c.BuildContext["VersionBadge"] = Path.Combine(Dirs.Output, "version_badge.svg");
+            var productName = Monikers.GetProductMoniker(c);
+            var config = Environment.GetEnvironmentVariable("CONFIGURATION");
+            var versionBadgeName = $"{CurrentPlatform.Current}_{CurrentArchitecture.Current}_{config}_version_badge.svg";
+            c.BuildContext["VersionBadge"] = Path.Combine(Dirs.Output, versionBadgeName);
 
             var extension = CurrentPlatform.IsWindows ? ".zip" : ".tar.gz";
             c.BuildContext["CompressedFile"] = Path.Combine(Dirs.Packages, productName + extension);
@@ -137,22 +139,7 @@ namespace Microsoft.DotNet.Cli.Build
             return c.Success();
         }
 
-        private static string GetProductMoniker(BuildTargetContext c)
-        {
-            string osname = "";
-            switch (CurrentPlatform.Current)
-            {
-                case BuildPlatform.Windows:
-                    osname = "win";
-                    break;
-                default:
-                    osname = CurrentPlatform.Current.ToString().ToLower();
-                    break;
-            }
-            var arch = CurrentArchitecture.Current.ToString();
-            var version = c.BuildContext.Get<BuildVersion>("BuildVersion").SimpleVersion;
-            return $"dotnet-{osname}-{arch}.{version}";
-        }
+        
 
         [Target]
         public static BuildTargetResult CheckPackageCache(BuildTargetContext c)
